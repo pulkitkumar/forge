@@ -1,0 +1,24 @@
+group 'com.pulkit.android'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+
+
+sourceCompatibility = 1.8
+
+repositories {
+    maven { url 'https://maven.google.com' }
+    google()
+    mavenCentral()
+}
+
+dependencies {
+    implementation "com.google.auto.service:auto-service:1.0-rc1"
+    implementation "com.google.auto:auto-common:0.9"
+    implementation "com.squareup:javapoet:1.9.0"
+    implementation "android.arch.lifecycle:extensions:1.1.1"
+    implementation "android.arch.lifecycle:runtime:1.1.1"
+
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
+    implementation project(path: ':forge-api')
+}
