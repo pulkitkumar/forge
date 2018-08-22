@@ -12,7 +12,7 @@ But for codebases that do not use Dagger, or do use a lower version of dagger. T
 
 To solve that I have written this annotation processor. 
 
-To avoid that we can just use the ```@FactoryInject ``` annotation on the ViewModel class. (Annotation target to be moved to constructor soon). The annotation would generate a factory class for the ViewModel with it's first constructor, and retain all the fields needed in the constructor.
+To avoid that we can just use the ```@Forge ``` annotation on the constructor of the ViewModel implementation class. The annotation would generate a factory class for the ViewModel with the constructor which has the annotation.
 
-As can be seen in the example in the ```app``` module, the ```SomeViewModel``` class has the ```FactoryInject``` annotation on it. While building the project a class named ```SomeViewModel_Factory``` is created implementing the ```ViewModelProvider.Factory``` and creating the view model with all the needed params whenever needed.
+As can be seen in the example in the ```app``` module, the ```SomeViewModel``` class has the ```@Forge``` annotation on it's constructor. While building the project a class named ```SomeViewModel_Factory``` is created implementing the ```ViewModelProvider.Factory``` and creating the view model with all the needed params whenever needed.
 

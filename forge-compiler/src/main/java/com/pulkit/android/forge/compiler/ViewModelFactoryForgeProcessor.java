@@ -1,7 +1,7 @@
 package com.pulkit.android.forge.compiler;
 
 import com.google.auto.service.AutoService;
-import com.pulkit.android.forge.api.FactoryInject;
+import com.pulkit.android.forge.api.Forge;
 import java.io.IOException;
 import java.util.Set;
 import javax.annotation.processing.AbstractProcessor;
@@ -15,9 +15,9 @@ import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.Elements;
-import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
 
 /**
@@ -25,23 +25,20 @@ import javax.tools.Diagnostic;
  */
 @AutoService(Processor.class)
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
-@SupportedAnnotationTypes("com.pulkit.android.forge.api.FactoryInject")
-public class ViewModelFactoryInjectProcessor extends AbstractProcessor {
+@SupportedAnnotationTypes("com.pulkit.android.forge.api.Forge")
+public class ViewModelFactoryForgeProcessor extends AbstractProcessor {
 
-  private static final String SUFFIX = "_Factory";
   private Messager messager;
   private Filer filer;
-  private Types typeUtils;
   private Elements elementUtils;
 
-  public ViewModelFactoryInjectProcessor() {
+  public ViewModelFactoryForgeProcessor() {
     super();
   }
 
   @Override
   public synchronized void init(ProcessingEnvironment processingEnv) {
     super.init(processingEnv);
-    typeUtils = processingEnv.getTypeUtils();
     elementUtils = processingEnv.getElementUtils();
     filer = processingEnv.getFiler();
     messager = processingEnv.getMessager();
@@ -50,16 +47,14 @@ public class ViewModelFactoryInjectProcessor extends AbstractProcessor {
   @Override
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
     try {
-      for (Element annotatedElement : roundEnv.getElementsAnnotatedWith(FactoryInject.class)) {
-        if (annotatedElement.getKind() != ElementKind.CLASS) {
-          throw new FactoryInjectException(String.format("Only classes can be annotated with @%s",
-              FactoryInject.class.getSimpleName()), annotatedElement);
-        }
-        TypeElement typeElement = (TypeElement) annotatedElement;
-        FactoryAnnotatedClass factoryAnnotatedClass = new FactoryAnnotatedClass(typeElement, filer, elementUtils, messager);
+      for (Element annotatedElement : roundEnv.getElementsAnnotatedWith(Forge.class)) {
+        checkForValidAnnotationUse(annotatedElement);
+        ExecutableElement typeElement = (ExecutableElement) annotatedElement;
+        FactoryAnnotatedClass factoryAnnotatedClass = new FactoryAnnotatedClass(typeElement,
+            (TypeElement) annotatedElement.getEnclosingElement(), filer, elementUtils);
         factoryAnnotatedClass.generateCode();
       }
-    } catch (FactoryInjectException e) {
+    } catch (ForgeException e) {
       messager.printMessage(Diagnostic.Kind.ERROR, e.message, e.element);
     } catch (IOException e) {
       messager.printMessage(Diagnostic.Kind.ERROR, e.getMessage(), null);
@@ -67,4 +62,16 @@ public class ViewModelFactoryInjectProcessor extends AbstractProcessor {
     return true;
   }
 
+  private void checkForValidAnnotationUse(Element annotatedElement) throws ForgeException {
+    if (annotatedElement.getKind() != ElementKind.CONSTRUCTOR) {
+      throw new ForgeException(String.format("Only constructors can be annotated with @%s",
+          Forge.class.getSimpleName()), annotatedElement);
+    }
+    TypeElement e = (TypeElement) annotatedElement.getEnclosingElement();
+    if (!e.getSuperclass().toString().contains("ViewModel")) {
+      throw new ForgeException(
+          String.format("Only subclasses of ViewModel should have constructors annotated with @%s",
+              Forge.class.getSimpleName()), annotatedElement);
+    }
+  }
 }

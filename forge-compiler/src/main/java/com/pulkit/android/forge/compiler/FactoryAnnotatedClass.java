@@ -16,8 +16,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import javax.annotation.processing.Filer;
-import javax.annotation.processing.Messager;
-import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.PackageElement;
@@ -33,51 +31,37 @@ class FactoryAnnotatedClass {
   private final TypeElement classElement;
   private final Filer filer;
   private final Elements elementUtils;
-  private final Messager messager;
-  private ExecutableElement constructorElement;
+  private final ExecutableElement constructorElement;
 
-  public FactoryAnnotatedClass(TypeElement typeElement, Filer filer, Elements elementUtils,
-      Messager messager) {
-    this.classElement = typeElement;
+  public FactoryAnnotatedClass(ExecutableElement constructor, TypeElement classElement, Filer filer, Elements elementUtils) {
+    this.classElement = classElement;
+    this.constructorElement = constructor;
     this.filer = filer;
     this.elementUtils = elementUtils;
-    this.messager = messager;
   }
 
   public void generateCode() throws IOException {
     String factoryClassName = classElement.getSimpleName() + SUFFIX;
-    String qualifiedClassName = classElement.getQualifiedName() + SUFFIX;
     PackageElement pkg = elementUtils.getPackageOf(classElement);
     String packageName = pkg.isUnnamed() ? null : pkg.getQualifiedName().toString();
 
-    classElement.getEnclosedElements().forEach(it -> {
-      if (it.getKind() == ElementKind.CONSTRUCTOR) {
-        constructorElement = (ExecutableElement) it;
-
-      }
-    });
-
     // check for constructor element null.
-
     MethodSpec.Builder constructorBuilder = MethodSpec.constructorBuilder()
         .addModifiers(Modifier.PUBLIC);
 
-    constructorElement.getParameters().forEach(it -> {
-      constructorBuilder.addParameter(getParamSpec(it));
-    });
+    constructorElement.getParameters()
+        .forEach(it -> constructorBuilder.addParameter(getParamSpec(it)));
 
-    constructorElement.getParameters().forEach(it -> {
-      constructorBuilder.addCode(CodeBlock.builder()
-          .addStatement(String.format("this.%s = %s", it.getSimpleName(), it.getSimpleName()))
-          .build());
-    });
+    constructorElement.getParameters().forEach(it ->
+        constructorBuilder.addCode(CodeBlock.builder()
+            .addStatement(String.format("this.%s = %s", it.getSimpleName(), it.getSimpleName()))
+            .build()));
 
     List<FieldSpec> fields = new ArrayList<>();
-    constructorElement.getParameters().forEach(it -> {
-      fields.add(getFieldSpec(it));
-    });
+    constructorElement.getParameters().forEach(it -> fields.add(getFieldSpec(it)));
 
-    TypeVariableName t = TypeVariableName.get("T").withBounds(ClassName.get("android.arch.lifecycle", "ViewModel"));
+    TypeVariableName t = TypeVariableName.get("T")
+        .withBounds(ClassName.get("android.arch.lifecycle", "ViewModel"));
 
     MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("create")
         .addAnnotation(Override.class)
@@ -87,17 +71,17 @@ class FactoryAnnotatedClass {
         .addParameter(getClassParameter(t));
 
     StringBuilder params = new StringBuilder();
-    fields.forEach(it -> {
-      params.append(it.name).append(COMMA);
-    });
+    fields.forEach(it -> params.append(it.name).append(COMMA));
     String paramString = params.toString().substring(0, params.lastIndexOf(COMMA));
 
-    methodBuilder.beginControlFlow(String.format(String.format("if (%s.isAssignableFrom(%s.class))", CLASS_PARAM_NAME, classElement.getSimpleName())))
-        .addStatement(String.format("return (T) new %s (%s)", classElement.getSimpleName(), paramString))
+    methodBuilder.beginControlFlow(String.format(String
+        .format("if (%s.isAssignableFrom(%s.class))", CLASS_PARAM_NAME,
+            classElement.getSimpleName())))
+        .addStatement(
+            String.format("return (T) new %s (%s)", classElement.getSimpleName(), paramString))
         .nextControlFlow("else")
         .addStatement("throw new RuntimeException(\"Unknown class name\")")
         .endControlFlow();
-
 
     TypeSpec typeSpec = TypeSpec.classBuilder(factoryClassName)
         .addModifiers(Modifier.PUBLIC)
@@ -125,8 +109,8 @@ class FactoryAnnotatedClass {
   }
 
   private ParameterSpec getClassParameter(TypeVariableName t) {
-    ParameterizedTypeName parameterizedTypeName = ParameterizedTypeName.get(ClassName.get(Class.class), t);
+    ParameterizedTypeName parameterizedTypeName = ParameterizedTypeName
+        .get(ClassName.get(Class.class), t);
     return ParameterSpec.builder(parameterizedTypeName, CLASS_PARAM_NAME).build();
   }
-
 }
