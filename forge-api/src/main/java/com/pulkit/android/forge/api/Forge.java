@@ -15,5 +15,5 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.SOURCE)
 @Documented
 public @interface Forge {
-  Type type() default Type.NEW_INSTANCE;
+  Type type() default Type.DEFAULT;
 }

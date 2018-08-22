@@ -2,6 +2,7 @@ package com.pulkit.android.forge.compiler;
 
 import com.google.auto.service.AutoService;
 import com.pulkit.android.forge.api.Forge;
+import com.pulkit.android.forge.api.Type;
 import java.io.IOException;
 import java.util.Set;
 import javax.annotation.processing.AbstractProcessor;
@@ -50,8 +51,9 @@ public class ViewModelFactoryForgeProcessor extends AbstractProcessor {
       for (Element annotatedElement : roundEnv.getElementsAnnotatedWith(Forge.class)) {
         checkForValidAnnotationUse(annotatedElement);
         ExecutableElement typeElement = (ExecutableElement) annotatedElement;
+        Type type = annotatedElement.getAnnotation(Forge.class).type();
         FactoryAnnotatedClass factoryAnnotatedClass = new FactoryAnnotatedClass(typeElement,
-            (TypeElement) annotatedElement.getEnclosingElement(), filer, elementUtils);
+            (TypeElement) annotatedElement.getEnclosingElement(), filer, elementUtils, type);
         factoryAnnotatedClass.generateCode();
       }
     } catch (ForgeException e) {

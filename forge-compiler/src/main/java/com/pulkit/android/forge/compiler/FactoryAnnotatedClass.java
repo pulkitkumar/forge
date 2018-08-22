@@ -1,5 +1,6 @@
 package com.pulkit.android.forge.compiler;
 
+import com.pulkit.android.forge.api.Type;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
@@ -32,12 +33,15 @@ class FactoryAnnotatedClass {
   private final Filer filer;
   private final Elements elementUtils;
   private final ExecutableElement constructorElement;
+  private final Type type;
 
-  public FactoryAnnotatedClass(ExecutableElement constructor, TypeElement classElement, Filer filer, Elements elementUtils) {
+  public FactoryAnnotatedClass(ExecutableElement constructor, TypeElement classElement, Filer filer,
+      Elements elementUtils, Type type) {
     this.classElement = classElement;
     this.constructorElement = constructor;
     this.filer = filer;
     this.elementUtils = elementUtils;
+    this.type = type;
   }
 
   public void generateCode() throws IOException {
@@ -83,9 +87,20 @@ class FactoryAnnotatedClass {
         .addStatement("throw new RuntimeException(\"Unknown class name\")")
         .endControlFlow();
 
-    TypeSpec typeSpec = TypeSpec.classBuilder(factoryClassName)
-        .addModifiers(Modifier.PUBLIC)
-        .addSuperinterface(ClassName.get("android.arch.lifecycle.ViewModelProvider", "Factory"))
+    TypeSpec.Builder typeSpecBuilder = TypeSpec.classBuilder(factoryClassName)
+        .addModifiers(Modifier.PUBLIC);
+    switch (type) {
+      case NEW_INSTANCE_FACTORY:
+        typeSpecBuilder.superclass(
+            ClassName.get("android.arch.lifecycle.ViewModelProvider", "NewInstanceFactory"));
+        break;
+
+      case DEFAULT:
+        typeSpecBuilder.addSuperinterface(
+            ClassName.get("android.arch.lifecycle.ViewModelProvider", "Factory"));
+    }
+
+    TypeSpec typeSpec = typeSpecBuilder
         .addFields(fields)
         .addMethod(constructorBuilder.build())
         .addMethod(methodBuilder.build())

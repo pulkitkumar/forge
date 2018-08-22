@@ -16,3 +16,8 @@ To avoid that we can just use the ```@Forge ``` annotation on the constructor of
 
 As can be seen in the example in the ```app``` module, the ```SomeViewModel``` class has the ```@Forge``` annotation on it's constructor. While building the project a class named ```SomeViewModel_Factory``` is created implementing the ```ViewModelProvider.Factory``` and creating the view model with all the needed params whenever needed.
 
+By default the annotation will implement the ```ViewModelProvider.Factory``` interface.
+But if we need the factory to extend the ```ViewModelProvider.NewInstanceFactory``` class, we can use the ```type``` parameter of the ```@Forge``` annotation.
+
+To generate ```NewInstanceFactory``` subclass as your factory. Just annotate the constructor using ```@Forge(type = Type.NEW_INSTANCE_FACTORY)``` annotation with type.
+Note the you should not use the annotation on two constructors of the same class. 
